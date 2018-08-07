@@ -1,23 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity">
 
 
-    <ImageView
-        android:id="@+id/imageview_crop"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-
-    <com.clwater.library.CropView
-        android:layout_centerInParent="true"
+    <com.clwater.library.CropLyaout
+        android:id="@+id/crop_cropLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/cropView"/>
-
+        app:cropType="circle"/>
 
 </RelativeLayout>

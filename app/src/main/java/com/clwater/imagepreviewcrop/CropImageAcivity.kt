@@ -18,11 +18,7 @@ class CropImageAcivity : AppCompatActivity() {
 
     private fun init() {
 
-//        val path = FileUtils.getRealFilePathFromUri(this, intent.dat)
-        imageview_crop.setImageURI(intent.data)
-        cropView.cropType = CropView.CropType.Circle
-        cropView.strokePading = 10f
-//        imageview_crop.setImageResource(date)
+        crop_cropLayout.initImageURI(intent.data)
     }
 
 
