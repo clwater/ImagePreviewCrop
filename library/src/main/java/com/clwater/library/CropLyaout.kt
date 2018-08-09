@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.PointF
+import android.graphics.RectF
 import android.net.Uri
 import android.util.AttributeSet
 import android.util.Log
@@ -34,6 +35,10 @@ class CropLyaout : RelativeLayout {
     var selectSize = 0f
 
     var strokePading = 0f
+
+    var viewHorizontal: Float = 0f
+    var viewVertical: Float = 0f
+
 
     constructor(context: Context?) : super(context) {
         initView()
@@ -114,10 +119,13 @@ class CropLyaout : RelativeLayout {
             }
         }
 
+        viewHorizontal = bitmap.height * scale / 2
+        viewVertical = bitmap.width * scale / 2
+
         imageMatrix.postScale(scale, scale)
 
-        imageMatrix.postTranslate(imageView.width / 2f - bitmap.width * scale / 2,
-                imageView.height / 2f - bitmap.height * scale / 2)
+        imageMatrix.postTranslate(imageView.width / 2f - viewVertical,
+                imageView.height / 2f - viewHorizontal)
 
 
         imageView.imageMatrix = imageMatrix
@@ -161,6 +169,7 @@ class CropLyaout : RelativeLayout {
                     }
                 }
 
+                checkRealm()
             }
             MotionEvent.ACTION_POINTER_UP -> {
                 mode = PointAction.NONE
@@ -177,6 +186,26 @@ class CropLyaout : RelativeLayout {
 
     }
 
+    private fun checkRealm() {
+
+        val rect = getMatrixRectF(imageMatrix)
+        if (rect.left > 923) {
+            imageMatrix.postTranslate(imageView.width - strokePading,
+                    imageView.height / 2f - strokePading)
+            imageView.imageMatrix = imageMatrix
+        }
+
+        Log.d("gzb", "rect: left = ${rect.left} , right = ${rect.right} , top = ${rect.top} , bottom = ${rect.bottom}")
+    }
+
+
+    private fun getMatrixRectF(matrix: Matrix): RectF {
+        val rect = RectF()
+        val d = imageView.drawable
+        rect.set(0f, 0f, d.intrinsicWidth.toFloat(), d.intrinsicHeight.toFloat())
+        matrix.mapRect(rect)
+        return rect
+    }
 
     fun pointDistance(event: MotionEvent): Float {
         val x = event.getX(0) - event.getX(1)
