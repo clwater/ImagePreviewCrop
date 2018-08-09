@@ -29,6 +29,8 @@ class CropLyaout : RelativeLayout {
     var cropType = CropView.CropType.Circle
 
     var start = PointF()
+    var zoomStartPointF = PointF()
+    var zoomStart: Float = 0f
     var mode = PointAction.NONE
 
 
@@ -122,18 +124,57 @@ class CropLyaout : RelativeLayout {
                 mode = PointAction.DRAG
                 start.set(event.x, event.y)
             }
+            MotionEvent.ACTION_POINTER_2_DOWN -> {
+                zoomStart = pointDistance(event)
+                Log.d("gzb17", "zoomStart: " + zoomStart)
+                if (zoomStart > 10f) {
+                    mode = PointAction.ZOOM
+                    zoomStartPointF.set(pointCenter(event))
+                    Log.d("gzb", "zoomStartPointF: ${zoomStartPointF.x} , ${zoomStartPointF.y}")
+                }
+            }
             MotionEvent.ACTION_MOVE -> {
-                val dx = event.x - start.x
-                val dy = event.y - start.y
-                start.set(event.x, event.y)
+                when (mode) {
+                    PointAction.DRAG -> {
+                        val dx = event.x - start.x
+                        val dy = event.y - start.y
+                        start.set(event.x, event.y)
 
-                imageMatrix.postTranslate(dx, dy)
-                imageView.imageMatrix = imageMatrix
+                        imageMatrix.postTranslate(dx, dy)
+                        imageView.imageMatrix = imageMatrix
+                    }
+                    PointAction.ZOOM -> {
+                        val zoomMove = pointDistance(event)
+                        val scale = zoomMove / zoomStart
+                        imageMatrix.postScale(scale, scale, zoomStartPointF.x, zoomStartPointF.y)
+                        imageView.imageMatrix = imageMatrix
+                        zoomStart = zoomMove
 
+                    }
+                    PointAction.NONE -> {
+                    }
+                }
+
+            }
+            MotionEvent.ACTION_POINTER_UP -> {
+                mode = PointAction.NONE
             }
         }
         return true
     }
 
+    private fun pointCenter(event: MotionEvent): PointF? {
+        val pointF = PointF()
+        pointF.set((event.getX(0) + event.getX(1)) / 2f,
+                (event.getY(0) + event.getY(1)) / 2f)
+        return pointF
 
+    }
+
+
+    fun pointDistance(event: MotionEvent): Float {
+        val x = event.getX(0) - event.getX(1)
+        val y = event.getY(0) - event.getY(1)
+        return Math.sqrt((x * x + y * y).toDouble()).toFloat()
+    }
 }
