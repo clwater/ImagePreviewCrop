@@ -7,7 +7,6 @@ import android.graphics.PointF
 import android.net.Uri
 import android.util.AttributeSet
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -32,7 +31,9 @@ class CropLyaout : RelativeLayout {
     var zoomStartPointF = PointF()
     var zoomStart: Float = 0f
     var mode = PointAction.NONE
+    var selectSize = 0f
 
+    var strokePading = 0f
 
     constructor(context: Context?) : super(context) {
         initView()
@@ -42,6 +43,7 @@ class CropLyaout : RelativeLayout {
         val typedArray = context.obtainStyledAttributes(attrs, R.styleable.CropLayout)
         val cropTypeInt = typedArray.getInt(R.styleable.CropLayout_cropType, 1)
 
+        strokePading = 50f
 
         when (cropTypeInt) {
             1 -> cropType = CropView.CropType.Circle
@@ -54,6 +56,7 @@ class CropLyaout : RelativeLayout {
 
     private fun initCropView() {
         cropView.cropType = cropType
+        cropView.strokePading = strokePading
     }
 
 
@@ -63,7 +66,7 @@ class CropLyaout : RelativeLayout {
         cropView = CropView(context)
         val layoutParams = ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         this.addView(imageView, layoutParams)
-//        this.addView(cropView, layoutParams)
+        this.addView(cropView, layoutParams)
 
         initCropView()
 //        initImageView()
@@ -81,13 +84,12 @@ class CropLyaout : RelativeLayout {
     val imageMatrix = Matrix()
 
     private fun initImageView(data: Uri) {
+        selectSize = cropView.width - ViewUtils.dip2px(context, strokePading).toFloat() * 2
 
         //获取路径
         val path = FileUtils.getRealFilePathFromUri(context, data)
         //获取裁剪后图片
         var bitmap = ViewUtils.decodeSampledBitmap(path, 720, 1280)
-
-//        initMatrix.postTranslate(100f , 200f)
 
 
         //调整竖屏拍摄旋转问题
@@ -99,17 +101,23 @@ class CropLyaout : RelativeLayout {
         var scale: Float
 
         if (bitmap.width >= bitmap.height) {
-            scale = imageView.width / 1f / bitmap.width
+            scale = selectSize / bitmap.width
+            val heightScale = selectSize / (bitmap.height * scale)
+            if (heightScale > 1) {
+                scale *= heightScale
+            }
         } else {
-            scale = imageView.height / 1f / bitmap.height
+            scale = selectSize / bitmap.height
+            val widthScale = selectSize / (bitmap.width * scale)
+            if (widthScale > 1) {
+                scale *= widthScale
+            }
         }
 
         imageMatrix.postScale(scale, scale)
 
         imageMatrix.postTranslate(imageView.width / 2f - bitmap.width * scale / 2,
                 imageView.height / 2f - bitmap.height * scale / 2)
-
-
 
 
         imageView.imageMatrix = imageMatrix
@@ -126,11 +134,9 @@ class CropLyaout : RelativeLayout {
             }
             MotionEvent.ACTION_POINTER_2_DOWN -> {
                 zoomStart = pointDistance(event)
-                Log.d("gzb17", "zoomStart: " + zoomStart)
                 if (zoomStart > 10f) {
                     mode = PointAction.ZOOM
                     zoomStartPointF.set(pointCenter(event))
-                    Log.d("gzb", "zoomStartPointF: ${zoomStartPointF.x} , ${zoomStartPointF.y}")
                 }
             }
             MotionEvent.ACTION_MOVE -> {
