@@ -100,11 +100,20 @@ class CropView : View {
                 canvas.drawPath(linePath, showPaint)
                 canvas.drawPath(linePath, strokePaint)
             }
-            CropType.Other ->{
+            CropType.Other -> {
                 canvas.drawPath(customizePath, showPaint)
                 canvas.drawPath(customizePath, strokePaint)
             }
         }
+    }
+
+    fun getCropRect(): Rect {
+        val rect = Rect()
+        rect.left = (this.width / 2 - (width / 2f - ViewUtils.dip2px(this.context, strokePading))).toInt()
+        rect.right = (this.width / 2 + (width / 2f - ViewUtils.dip2px(this.context, strokePading))).toInt()
+        rect.top = (this.height / 2 - (width / 2f - ViewUtils.dip2px(this.context, strokePading))).toInt()
+        rect.bottom = (this.height / 2 + (width / 2f - ViewUtils.dip2px(this.context, strokePading))).toInt()
+        return rect
     }
 
 }

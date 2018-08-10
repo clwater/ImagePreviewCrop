@@ -7,7 +7,6 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.net.Uri
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -33,11 +32,15 @@ class CropLyaout : RelativeLayout {
     var zoomStart: Float = 0f
     var mode = PointAction.NONE
     var selectSize = 0f
-
     var strokePading = 0f
+
+    var scaleMin: Float = 0f
+    var scaleMax: Float = 4f
 
     var viewHorizontal: Float = 0f
     var viewVertical: Float = 0f
+
+    val matrixValues = FloatArray(9)
 
 
     constructor(context: Context?) : super(context) {
@@ -74,7 +77,6 @@ class CropLyaout : RelativeLayout {
         this.addView(cropView, layoutParams)
 
         initCropView()
-//        initImageView()
     }
 
     fun initImageURI(data: Uri) {
@@ -111,11 +113,25 @@ class CropLyaout : RelativeLayout {
             if (heightScale > 1) {
                 scale *= heightScale
             }
+
+            val rect = cropView.getCropRect()
+            scaleMin = rect.height() / bitmap.height.toFloat()
+
+            if (scale < scaleMin) {
+                scale = scaleMin
+            }
         } else {
             scale = selectSize / bitmap.height
             val widthScale = selectSize / (bitmap.width * scale)
             if (widthScale > 1) {
                 scale *= widthScale
+            }
+
+            val rect = cropView.getCropRect()
+            scaleMin = rect.width() / bitmap.width.toFloat()
+
+            if (scale < scaleMin) {
+                scale = scaleMin
             }
         }
 
@@ -140,7 +156,7 @@ class CropLyaout : RelativeLayout {
                 mode = PointAction.DRAG
                 start.set(event.x, event.y)
             }
-            MotionEvent.ACTION_UP ->{
+            MotionEvent.ACTION_UP -> {
                 mode = PointAction.NONE
                 checkRealmDrag()
             }
@@ -166,9 +182,23 @@ class CropLyaout : RelativeLayout {
                     PointAction.ZOOM -> {
                         val zoomMove = pointDistance(event)
                         val scale = zoomMove / zoomStart
-                        imageMatrix.postScale(scale, scale, zoomStartPointF.x, zoomStartPointF.y)
-                        imageView.imageMatrix = imageMatrix
+
+                        if (scale < 1) {
+                            if (getScale() >= scaleMin) {
+                                imageMatrix.postScale(scale, scale, zoomStartPointF.x, zoomStartPointF.y)
+                                imageView.imageMatrix = imageMatrix
+                            } else {
+                                imageMatrix.postScale(1.05f, 1.05f, zoomStartPointF.x, zoomStartPointF.y)
+                                imageView.imageMatrix = imageMatrix
+                            }
+                        } else {
+                            if (getScale() <= scaleMax) {
+                                imageMatrix.postScale(scale, scale, zoomStartPointF.x, zoomStartPointF.y)
+                                imageView.imageMatrix = imageMatrix
+                            }
+                        }
                         zoomStart = zoomMove
+                        checkRealmDrag()
 
                     }
                     PointAction.NONE -> {
@@ -176,11 +206,16 @@ class CropLyaout : RelativeLayout {
                 }
 
             }
-            MotionEvent.ACTION_POINTER_UP -> {
+            MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_POINTER_2_UP -> {
                 mode = PointAction.NONE
             }
         }
         return true
+    }
+
+    fun getScale(): Float {
+        imageMatrix.getValues(matrixValues)
+        return matrixValues[Matrix.MSCALE_X]
     }
 
     private fun pointCenter(event: MotionEvent): PointF? {
@@ -194,7 +229,6 @@ class CropLyaout : RelativeLayout {
     private fun checkRealmDrag() {
 
         val rect = getMatrixRectF(imageMatrix)
-        Log.d("gzb", "rect: left = ${rect.left} , right = ${rect.right} , top = ${rect.top} , bottom = ${rect.bottom}")
 
         val realmLeft = ViewUtils.dip2px(context, strokePading)
         val realmRight = this.width - ViewUtils.dip2px(context, strokePading)
@@ -211,12 +245,12 @@ class CropLyaout : RelativeLayout {
             imageView.imageMatrix = imageMatrix
         }
 
-        if (rect.top > realmTop){
+        if (rect.top > realmTop) {
             imageMatrix.postTranslate(0f, realmTop - rect.top)
             imageView.imageMatrix = imageMatrix
         }
 
-        if (rect.bottom < realmBottom){
+        if (rect.bottom < realmBottom) {
             imageMatrix.postTranslate(0f, realmBottom - rect.bottom)
             imageView.imageMatrix = imageMatrix
         }
