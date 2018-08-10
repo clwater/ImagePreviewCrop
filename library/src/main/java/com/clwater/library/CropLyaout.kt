@@ -140,6 +140,10 @@ class CropLyaout : RelativeLayout {
                 mode = PointAction.DRAG
                 start.set(event.x, event.y)
             }
+            MotionEvent.ACTION_UP ->{
+                mode = PointAction.NONE
+                checkRealmDrag()
+            }
             MotionEvent.ACTION_POINTER_2_DOWN -> {
                 zoomStart = pointDistance(event)
                 if (zoomStart > 10f) {
@@ -150,12 +154,14 @@ class CropLyaout : RelativeLayout {
             MotionEvent.ACTION_MOVE -> {
                 when (mode) {
                     PointAction.DRAG -> {
+                        checkRealmDrag()
+
                         val dx = event.x - start.x
                         val dy = event.y - start.y
                         start.set(event.x, event.y)
-
                         imageMatrix.postTranslate(dx, dy)
                         imageView.imageMatrix = imageMatrix
+
                     }
                     PointAction.ZOOM -> {
                         val zoomMove = pointDistance(event)
@@ -169,7 +175,6 @@ class CropLyaout : RelativeLayout {
                     }
                 }
 
-                checkRealm()
             }
             MotionEvent.ACTION_POINTER_UP -> {
                 mode = PointAction.NONE
@@ -186,16 +191,36 @@ class CropLyaout : RelativeLayout {
 
     }
 
-    private fun checkRealm() {
+    private fun checkRealmDrag() {
 
         val rect = getMatrixRectF(imageMatrix)
-        if (rect.left > 923) {
-            imageMatrix.postTranslate(imageView.width - strokePading,
-                    imageView.height / 2f - strokePading)
+        Log.d("gzb", "rect: left = ${rect.left} , right = ${rect.right} , top = ${rect.top} , bottom = ${rect.bottom}")
+
+        val realmLeft = ViewUtils.dip2px(context, strokePading)
+        val realmRight = this.width - ViewUtils.dip2px(context, strokePading)
+        val realmTop = this.height / 2 - this.width / 2 + ViewUtils.dip2px(context, strokePading)
+        val realmBottom = this.height / 2 + this.width / 2 - ViewUtils.dip2px(context, strokePading)
+
+        if (rect.left > realmLeft) {
+            imageMatrix.postTranslate(realmLeft - rect.left, 0f)
             imageView.imageMatrix = imageMatrix
         }
 
-        Log.d("gzb", "rect: left = ${rect.left} , right = ${rect.right} , top = ${rect.top} , bottom = ${rect.bottom}")
+        if (rect.right < realmRight) {
+            imageMatrix.postTranslate(realmRight - rect.right, 0f)
+            imageView.imageMatrix = imageMatrix
+        }
+
+        if (rect.top > realmTop){
+            imageMatrix.postTranslate(0f, realmTop - rect.top)
+            imageView.imageMatrix = imageMatrix
+        }
+
+        if (rect.bottom < realmBottom){
+            imageMatrix.postTranslate(0f, realmBottom - rect.bottom)
+            imageView.imageMatrix = imageMatrix
+        }
+
     }
 
 
